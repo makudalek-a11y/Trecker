@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Домашний тренер</title>
+<style>
+:root{--bg:#0b1020;--p:#121a2b;--p2:#1b263d;--line:#2a3754;--t:#f8fafc;--m:#94a3b8;--a:#8b5cf6;--g:#22c55e;--y:#f59e0b}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(#090e1a,#111827);color:var(--t);font:15px system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+main{max-width:760px;margin:auto;padding:18px 14px 48px}h1{font-size:29px;margin:4px 0}.muted{color:var(--m);font-size:13px}.card{background:var(--p);border:1px solid var(--line);border-radius:18px;padding:15px;margin:12px 0}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}.stat{background:var(--p);border:1px solid var(--line);border-radius:14px;padding:11px;text-align:center}.stat b{display:block;font-size:21px}.stat span{color:var(--m);font-size:11px}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.tab,.btn,.set{border:0;border-radius:11px;padding:11px;font-weight:800;color:white;background:#293650}.tab.on{background:#392c59}.panel{display:none}.panel.on{display:block}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}.title{font-weight:900;font-size:18px}.badge{font-size:12px;background:#28324a;border-radius:999px;padding:5px 8px}
+.progress{height:10px;background:#222d45;border-radius:99px;overflow:hidden;margin:12px 0 5px}.progress div{height:100%;background:linear-gradient(90deg,var(--a),var(--g))}
+.exercise{border-top:1px solid var(--line);padding:14px 0}.exercise:first-child{border-top:0}.ename{font-weight:800}.meta{color:#cbd5e1;font-size:13px;margin-top:3px}.sets{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.set{min-width:46px;background:#202b43}.set.done{background:#17452b}
+.btn.a{background:var(--a)}.btn.g{background:var(--g);color:#062812}.btn.y{background:#4a3510;color:#fde68a}.btn:disabled{opacity:.45}
+.timer{text-align:center}.time{font-size:46px;font-weight:900;margin:12px}.task{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}.task input{width:21px;height:21px;accent-color:var(--g)}
+.week{display:grid;gap:8px}.day{padding:11px;border:1px solid var(--line);border-radius:13px;background:var(--p2)}.day.today{border-color:var(--a)}.hist{padding:10px 0;border-top:1px solid var(--line)}
+@media(max-width:460px){.row.wrap{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body><main>
+<h1>Домашний тренер</h1><div class="muted" id="date"></div>
+<div class="stats"><div class="stat"><b id="streak">0</b><span>серия</span></div><div class="stat"><b id="pct">0%</b><span>сегодня</span></div><div class="stat"><b id="week">1</b><span>неделя</span></div></div>
+<div class="tabs"><button class="tab on" data-p="today">Сегодня</button><button class="tab" data-p="plan">План</button><button class="tab" data-p="history">История</button></div>
+
+<section id="today" class="panel on">
+<div class="card"><div class="row wrap"><div><div class="muted" id="cycle"></div><div class="title" id="wtitle"></div><div class="muted" id="wdesc"></div></div><span class="badge" id="type"></span></div><div class="progress"><div id="bar"></div></div><div class="muted" id="plabel"></div></div>
+<div class="card"><div class="row wrap"><div><div class="title">Нет желания?</div><div class="muted">Включи минимум: по одному подходу первых трёх упражнений.</div></div><button class="btn y" id="minbtn">Режим 5 минут</button></div></div>
+<div class="card"><div class="title">Упражнения</div><div id="ex"></div></div>
+<div class="card timer"><div class="title">Отдых</div><div class="time" id="clock">01:00</div><div><button class="btn" data-t="60">60с</button> <button class="btn" data-t="90">90с</button> <button class="btn" data-t="120">120с</button></div><div style="margin-top:10px"><button class="btn a" id="start">Старт</button> <button class="btn" id="reset">Сброс</button></div></div>
+<div class="card"><div class="title">Задачи</div><div id="tasks"></div></div>
+<div class="card"><div class="row wrap"><div class="muted">Лучше короткая тренировка, чем полный срыв.</div><div><button class="btn y" id="finishMin">Засчитать минимум</button> <button class="btn g" id="finish">Завершить</button></div></div></div>
+</section>
+
+<section id="plan" class="panel">
+<div class="card"><div class="title">7-дневный цикл</div><div class="muted" style="margin:5px 0 12px">Без инвентаря. Отдых — часть программы.</div><div id="weekplan" class="week"></div></div>
+<div class="card"><div class="title">Чтобы не забросить</div><p><b>1.</b> Плохой день = режим 5 минут.</p><p><b>2.</b> Привяжи тренировку к одному событию: например, сразу после ужина.</p><p><b>3.</b> Один пропуск допустим. Два подряд — нет.</p><p><b>4.</b> Сначала регулярность, потом объём.</p></div>
+</section>
+
+<section id="history" class="panel"><div class="card"><div class="title">История</div><div id="hist"></div></div></section>
+</main>
+<script>
+(()=>{const K='trainer_apk_v1';
+const P=[
+['Грудь + плечи + трицепс','Толкающие движения и корпус.','Тренировка',[['Отжимания',8,12,3],['Узкие отжимания',6,10,3],['Пайк-отжимания',5,8,3],['Планка с касанием плеч',8,12,3]]],
+['Ноги','Ноги, ягодицы и икры.','Тренировка',[['Приседания',12,20,4],['Выпады назад',8,12,3],['Ягодичный мост',12,20,4],['Подъёмы на носки',18,30,3]]],
+['Корпус + верх спины','Пресс, осанка и подвижность.','Лёгкий день',[['Dead bug',6,10,3],['Боковая планка, сек',15,30,3],['Снежные ангелы лёжа',8,14,3]]],
+['Восстановление','Лёгкая разминка по желанию.','Отдых',[['Разминка, мин',5,10,1],['Растяжка, мин',5,10,1]]],
+['Верх тела','Грудь, плечи и верх спины.','Тренировка',[['Отжимания',8,15,4],['Широкие отжимания',6,12,3],['Пайк-отжимания',5,10,3],['Y-T подъёмы рук лёжа',6,10,3]]],
+['Ноги + пресс','Ноги, ягодицы и корпус.','Тренировка',[['Приседания с паузой',10,16,4],['Выпады назад',8,12,3],['Мост на одной ноге',6,10,3],['Велосипед на пресс',10,18,3]]],
+['Полный отдых','Восстановление — часть плана.','Отдых',[]]];
+const iso=()=>{let d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const dd=(a,b)=>Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000);
+const def=()=>({date:iso(),start:iso(),done:false,kind:null,min:false,sets:{},tasks:{warm:false,water:false,stretch:false},hist:[]});
+let s;try{s=JSON.parse(localStorage.getItem(K))}catch(e){}s=s||def();
+function idx(){return Math.max(0,dd(s.start,s.date))%7}function wn(){return Math.floor(Math.max(0,dd(s.start,s.date))/7)+1}
+function save(){localStorage.setItem(K,JSON.stringify(s))}
+function completion(){let ex=P[idx()][3],total=0,done=0;ex.forEach((x,i)=>{let n=s.min?(i<3?1:0):x[3];total+=n;for(let k=0;k<n;k++)if((s.sets[i]||[])[k])done++});['warm','water','stretch'].forEach(k=>{total++;if(s.tasks[k])done++});return total?Math.round(done/total*100):0}
+function archive(){let c=completion();if(c||s.done)s.hist.unshift({date:s.date,title:P[idx()][0],pct:c,kind:s.kind});s.hist=s.hist.slice(0,60)}
+if(s.date!==iso()){archive();s.date=iso();s.done=false;s.kind=null;s.min=false;s.sets={};s.tasks={warm:false,water:false,stretch:false};save()}
+const $=x=>document.getElementById(x);
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));document.querySelectorAll('.panel').forEach(x=>x.classList.remove('on'));$(b.dataset.p).classList.add('on')});
+function render(){let i=idx(),w=P[i],c=completion();$('date').textContent=new Date().toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});$('pct').textContent=c+'%';$('week').textContent=wn();$('cycle').textContent='День '+(i+1)+' из 7 · неделя '+wn();$('wtitle').textContent=w[0];$('wdesc').textContent=w[1];$('type').textContent=w[2];$('bar').style.width=c+'%';$('plabel').textContent=s.done?(s.kind==='min'?'Минимум выполнен ✓':'Тренировка завершена ✓'):'Выполнено '+c+'%';$('minbtn').textContent=s.min?'Полный план':'Режим 5 минут';renderEx();renderTasks();renderPlan();renderHist();$('streak').textContent=streak();$('finish').disabled=s.done;$('finishMin').disabled=s.done}
+function renderEx(){let r=$('ex');r.innerHTML='';let list=P[idx()][3];if(!list.length){r.innerHTML='<p class="muted">Сегодня отдых. Ничего компенсировать завтра не нужно.</p>';return}list.forEach((x,i)=>{if(s.min&&i>2)return;let n=s.min?1:x[3],d=document.createElement('div');d.className='exercise';d.innerHTML='<div class="row"><div><div class="ename"></div><div class="meta"></div></div><span class="badge">'+n+' подх.</span></div><div class="sets"></div>';d.querySelector('.ename').textContent=x[0];d.querySelector('.meta').textContent=x[1]+'–'+x[2]+' повторов';for(let k=0;k<n;k++){let b=document.createElement('button');b.className='set '+(((s.sets[i]||[])[k])?'done':'');b.textContent=((s.sets[i]||[])[k])?'✓':k+1;b.onclick=()=>{s.sets[i]=s.sets[i]||[];s.sets[i][k]=!s.sets[i][k];save();render()};d.querySelector('.sets').appendChild(b)}r.appendChild(d)})}
+function renderTasks(){let r=$('tasks');r.innerHTML='';[['warm','Разминка'],['water','Вода и нормальные паузы'],['stretch','Заминка']].forEach(([k,l])=>{let d=document.createElement('div');d.className='task';let c=document.createElement('input');c.type='checkbox';c.checked=!!s.tasks[k];c.onchange=()=>{s.tasks[k]=c.checked;save();render()};d.append(c,document.createTextNode(l));r.appendChild(d)})}
+function renderPlan(){let r=$('weekplan');r.innerHTML='';P.forEach((w,i)=>{let d=document.createElement('div');d.className='day'+(i===idx()?' today':'');d.innerHTML='<b>День '+(i+1)+': '+w[0]+'</b><div class="muted">'+w[1]+'</div>';r.appendChild(d)})}
+function renderHist(){let r=$('hist');r.innerHTML=s.hist.length?'':'<p class="muted">Пока пусто.</p>';s.hist.forEach(h=>{let d=document.createElement('div');d.className='hist';d.innerHTML='<b>'+h.date+' · '+h.title+'</b><div class="muted">'+(h.kind==='min'?'Минимум ✓':h.kind==='full'?'Готово ✓':h.pct+'%')+'</div>';r.appendChild(d)})}
+function streak(){let q=new Set(s.hist.filter(h=>h.kind).map(h=>h.date));if(s.done)q.add(s.date);let d=new Date(s.date+'T00:00:00'),n=0;for(let j=0;j<90;j++){let k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');if(q.has(k)){n++;d.setDate(d.getDate()-1)}else break}return n}
+$('minbtn').onclick=()=>{s.min=!s.min;save();render()};$('finish').onclick=()=>{s.done=true;s.kind='full';save();render()};$('finishMin').onclick=()=>{s.min=true;s.done=true;s.kind='min';save();render()};
+let preset=60,left=60,t=null;function clock(){$('clock').textContent=String(Math.floor(left/60)).padStart(2,'0')+':'+String(left%60).padStart(2,'0')}function stop(){if(t)clearInterval(t);t=null;$('start').textContent='Старт'}
+document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{stop();preset=left=+b.dataset.t;clock()});$('start').onclick=()=>{if(t){stop();return}if(left<=0)left=preset;$('start').textContent='Пауза';t=setInterval(()=>{left--;clock();if(left<=0)stop()},1000)};$('reset').onclick=()=>{stop();left=preset;clock()};clock();render()
+})();
+</script></body></html>
